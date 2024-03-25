@@ -4,8 +4,10 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:tesock/MyHomePage2.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -25,8 +27,12 @@ class _MyHomePageState extends State<MyHomePage> {
         var pricetopay="100";
         final wsUrl = Uri.parse("ws://" + url + ":5000");
         //final wsUrl = Uri.parse("wss://ws-feed.pro.coinbase.com");
-        final channel = WebSocketChannel.connect(wsUrl);
-        ScaffoldMessenger.of(context).showSnackBar(
+        final WebSocketChannel channel;
+        if (kIsWeb) {
+          channel = WebSocketChannel.connect(Uri.parse("ws://$url:5000"));
+        } else {
+          channel = IOWebSocketChannel.connect("ws://$url:5000");
+        }        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Connecting...'+"ws://" + url + ":5000")),
         );
         await channel.ready;
