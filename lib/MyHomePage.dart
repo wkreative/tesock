@@ -27,16 +27,21 @@ class _MyHomePageState extends State<MyHomePage> {
         var pricetopay="100";
         final wsUrl = Uri.parse("ws://" + url + ":5000");
         //final wsUrl = Uri.parse("wss://ws-feed.pro.coinbase.com");
-        final WebSocketChannel channel;
+        IOWebSocketChannel? channel;
         if (kIsWeb) {
-          channel = WebSocketChannel.connect(Uri.parse("ws://$url:5000"));
+    //      channel = WebSocketChannel.connect(Uri.parse("ws://$url:5000"));
         } else {
-          channel = IOWebSocketChannel.connect("ws://$url:5000");
-        }        ScaffoldMessenger.of(context).showSnackBar(
+         WebSocket.connect("ws://$url:5000").then((ws) {
+            channel = IOWebSocketChannel(ws);
+
+         });
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Connecting...'+"ws://" + url + ":5000")),
         );
-        await channel.ready;
-        channel.sink.add(jsonEncode({
+        await channel?.ready;
+
+        channel?.sink.add(jsonEncode({
           "TRAN_MODE": "1",
           "TRAN_CODE": "1",
           "AMOUNT": pricetopay,
@@ -50,7 +55,7 @@ class _MyHomePageState extends State<MyHomePage> {
           "VAS_LABEL2": "SERIAL_NO",
           "VAS_DATA2": "987654321"
         }));
-        channel.stream.listen((message) {
+        channel?.stream.listen((message) {
           log("WebSocketChannelWebSocketChannel" + message
             ..toString());
 
@@ -77,7 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   backgroundColor: Colors.red),
             );
           }
-          channel.sink.close();
+          channel?.sink.close();
         }, onError: (error) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -87,7 +92,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 backgroundColor: Colors.red),
           );
-          channel.sink.close();
+          channel?.sink.close();
         });
       } catch (e) {
       ///  log("WebSocketChannelWebSocketChannel${(e as SocketException).osError}");
