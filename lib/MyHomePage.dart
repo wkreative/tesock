@@ -6,11 +6,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:tesock/MyHomePage2.dart';
-import 'package:web_socket_channel/io.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
-
-import 'CoinbaseRequest.dart';
+import 'package:websocket_universal/websocket_universal.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -29,23 +25,34 @@ class _MyHomePageState extends State<MyHomePage> {
         var pricetopay="100";
         final wsUrl = Uri.parse("ws://" + url + ":5000");
         //final wsUrl = Uri.parse("wss://ws-feed.pro.coinbase.com");
-        WebSocketChannel? channel;
        // if (kIsWeb) {
         // channel = WebSocketChannel.connect(Uri.parse("ws://$url:5000"));
-         channel = WebSocketChannel.connect(Uri.parse("wss://ws-feed.pro.coinbase.com"));
        /* } else {
          WebSocket.connect("ws://$url:5000").then((ws) {
             channel = IOWebSocketChannel(ws);
 
          });*/
        // }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Connecting...'+"ws://" + url + ":5000")),
-        );
-        await channel.ready;
 
-/*
-        channel.sink.add(jsonEncode({
+        /// 1. Create webSocket handler:
+        final textSocketHandler = IWebSocketHandler<String, String>.createClient(
+          'ws://$url:5000', // Postman echo ws server
+          SocketSimpleTextProcessor(),
+        );
+
+        /// 2. Listen to webSocket messages:
+        textSocketHandler.incomingMessagesStream.listen((inMsg) {
+          print('> webSocket  got text message from server: "$inMsg" '
+              '[ping: ${textSocketHandler.pingDelayMs}]');
+        });
+        textSocketHandler.outgoingMessagesStream.listen((inMsg) {
+          print('> webSocket sent text message to   server: "$inMsg" '
+              '[ping: ${textSocketHandler.pingDelayMs}]');
+        });
+
+        /// 3. Connect & send message:
+        await textSocketHandler.connect();
+        textSocketHandler.sendMessage(jsonEncode({
           "TRAN_MODE": "1",
           "TRAN_CODE": "1",
           "AMOUNT": pricetopay,
@@ -59,65 +66,16 @@ class _MyHomePageState extends State<MyHomePage> {
           "VAS_LABEL2": "SERIAL_NO",
           "VAS_DATA2": "987654321"
         }));
-*/
-        channel.sink.add(jsonEncode(
-          CoinbaseRequest(
-            'subscribe',
-            [
-              {
-                "name": "ticker",
-                "product_ids": ["BTC-EUR"]
-              }
-            ],
-          ).toJson(),
-        ),);
-        channel.stream.listen((message) {
-          log("WebSocketChannelWebSocketChannel" + message
-            ..toString());
-          ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                      content: Text(
-                        message.toString(),
-                        selectionColor: Colors.white,
-                      ),
-                      backgroundColor: Colors.red),
-                );
+        await Future<void>.delayed(const Duration(seconds: 4));
 
-          // var jsonn = jsonDecode(message);
-          // if (jsonn['STATE'] == "0"||jsonn['STATE'] == 0) {
-          //   ScaffoldMessenger.of(context).showSnackBar(
-          //     SnackBar(
-          //         content: Text(
-          //           message.toString(),
-          //           selectionColor: Colors.white,
-          //         ),
-          //         backgroundColor: Colors.green),
-          //   );
-          //
-          //   //channel.sink.close();
-          // }
-          // else {
-          //   ScaffoldMessenger.of(context).showSnackBar(
-          //     SnackBar(
-          //         content: Text(
-          //           message.toString(),
-          //           selectionColor: Colors.white,
-          //         ),
-          //         backgroundColor: Colors.red),
-          //   );
-          // }
-          // channel?.sink.close();
-        }, onError: (error) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(
-                  error.toString(),
-                  selectionColor: Colors.white,
-                ),
-                backgroundColor: Colors.red),
-          );
-          channel?.sink.close();
-        });
+        // 4. Disconnect & close connection:
+        await textSocketHandler.disconnect('manual disconnect');
+        textSocketHandler.close();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Connecting...'+"ws://" + url + ":5000")),
+        );
+       // await channel.ready;
+
       } catch (e) {
       ///  log("WebSocketChannelWebSocketChannel${(e as SocketException).osError}");
         log("WebSocketChannelWebSocketChannel$e");
@@ -183,10 +141,7 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             FloatingActionButton(
               onPressed:() {
-                Navigator.push(context, MaterialPageRoute(builder:(context) {
-                  return  MyHomePage2(title: "TCP Test");
 
-                },));
               },
               tooltip: 'Try TCP connection',
               child: const Icon(Icons.refresh),
