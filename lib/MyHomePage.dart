@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
-
+import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -21,8 +22,31 @@ class _MyHomePageState extends State<MyHomePage> {
         var url  = "192.168.0."+ip;
         var pricetopay="100";
         final wsUrl = Uri.parse("ws://" + url + ":5000");
-        final channel = WebSocketChannel.connect(wsUrl);
-        await channel.ready;
+      //  final channel = WebSocketChannel.connect(wsUrl);
+        var handler = webSocketHandler((webSocket) {
+          webSocket.stream.listen((message) {
+            webSocket.sink.add(jsonEncode({
+              "TRAN_MODE": "1",
+              "TRAN_CODE": "1",
+              "AMOUNT": pricetopay,
+              "TIP_ENTRY": "0",
+              "SIGNATURE": "1",
+              "PAPER_RECEIPT": "1",
+              "MOBILE_ENTRY": "0",
+              "MOBILE_NUMBER": "1234567890",
+              "VAS_LABEL1": "INVOICE_NO",
+              "VAS_DATA1": "12345",
+              "VAS_LABEL2": "SERIAL_NO",
+              "VAS_DATA2": "987654321"
+            }));
+          });
+        });
+
+        shelf_io.serve(handler, url, 5000).then((server) {
+          print('Serving at ws://${server.address.host}:${server.port}');
+        });
+
+  /*      await channel.ready;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Connecting...'+"ws://" + url + ":5000")),
         );
@@ -77,7 +101,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 backgroundColor: Colors.red),
           );
           channel.sink.close();
-        });
+        });*/
       }   on SocketException catch (e) {
       ///  log("WebSocketChannelWebSocketChannel${(e as SocketException).osError}");
         log("WebSocketChannelWebSocketChannel${e.osError}");
