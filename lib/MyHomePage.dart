@@ -1,13 +1,15 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
-import 'package:flutter/cupertino.dart';
+
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/io.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
+
   final String title;
+
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
@@ -15,131 +17,125 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
   String ip = "";
+
   Future<void> _incrementCounter() async {
-      try {
-        var url  = "192.168.0."+ip;
-        var pricetopay="100";
-        final wsUrl = Uri.parse("ws://" + url + ":5000");
+    try {
+      var url = "192.168.0." + ip;
+      var pricetopay = "100";
+      final wsUrl = Uri.parse("ws://" + url + ":5000");
 
       // final channel = WebSocketChannel.connect(wsUrl);
-        var channel = IOWebSocketChannel.connect(
-          wsUrl,
-          headers: {
-            "Connection": "upgrade",
-            "Upgrade": "websocket",
-         //   "Authorization": "Bearer $token",
-          },
-        );
-        await channel.ready;
+      var channel = IOWebSocketChannel.connect(
+        wsUrl,
+        headers: {
+          "Connection": "upgrade",
+          "Upgrade": "websocket",
+          //   "Authorization": "Bearer $token",
+        },
+      );
+      await channel.ready;
+      if (channel.innerWebSocket?.readyState == WebSocket.open) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Connecting...'+"ws://" + url + ":5000")),
+          SnackBar(content: Text('Connecting...' + "ws://" + url + ":5000")),
         );
-        channel.sink.add(jsonEncode({
-          "TRAN_MODE": "1",
-          "TRAN_CODE": "1",
-          "AMOUNT": pricetopay,
-          "TIP_ENTRY": "0",
-          "SIGNATURE": "1",
-          "PAPER_RECEIPT": "1",
-          "MOBILE_ENTRY": "0",
-          "MOBILE_NUMBER": "1234567890",
-          "VAS_LABEL1": "INVOICE_NO",
-          "VAS_DATA1": "12345",
-          "VAS_LABEL2": "SERIAL_NO",
-          "VAS_DATA2": "987654321"
-        }));
-        channel.stream.listen((message) {
-          log("WebSocketChannelWebSocketChannel" + message
-            ..toString());
-          var jsonn = jsonDecode(message);
-          if (jsonn['STATE'] == "0"||jsonn['STATE'] == 0) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Text(
-                    message.toString(),
-                    selectionColor: Colors.white,
-                  ),
-                  backgroundColor: Colors.green),
-            );
-
-            //channel.sink.close();
-          }
-          else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Text(
-                    message.toString(),
-                    selectionColor: Colors.white,
-                  ),
-                  backgroundColor: Colors.red),
-            );
-          }
-          channel?.sink.close();
-        }, onError: (error) {
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("NO Connection")),
+        );
+        return;
+      }
+      channel.sink.add(jsonEncode({
+        "TRAN_MODE": "1",
+        "TRAN_CODE": "1",
+        "AMOUNT": pricetopay,
+        "TIP_ENTRY": "0",
+        "SIGNATURE": "1",
+        "PAPER_RECEIPT": "1",
+        "MOBILE_ENTRY": "0",
+        "MOBILE_NUMBER": "1234567890",
+        "VAS_LABEL1": "INVOICE_NO",
+        "VAS_DATA1": "12345",
+        "VAS_LABEL2": "SERIAL_NO",
+        "VAS_DATA2": "987654321"
+      }));
+      channel.stream.listen((message) {
+        log("WebSocketChannelWebSocketChannel" + message
+          ..toString());
+        var jsonn = jsonDecode(message);
+        if (jsonn['STATE'] == "0" || jsonn['STATE'] == 0) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
                 content: Text(
-                  error.toString(),
+                  message.toString(),
+                  selectionColor: Colors.white,
+                ),
+                backgroundColor: Colors.green),
+          );
+
+          //channel.sink.close();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(
+                  message.toString(),
                   selectionColor: Colors.white,
                 ),
                 backgroundColor: Colors.red),
           );
-          channel.sink.close();
-        });
-      }   on SocketException catch (e) {
-      ///  log("WebSocketChannelWebSocketChannel${(e as SocketException).osError}");
-        log("WebSocketChannelWebSocketChannel${e.osError}");
-        log("WebSocketChannelWebSocketChannel${e.address.toString()}");
-        log("WebSocketChannelWebSocketChannel${e.message.toString()}");
-        log("WebSocketChannelWebSocketChannel${e.port.toString()}");
-        log("WebSocketChannelWebSocketChannel-  ${e.runtimeType}");
+        }
+        channel?.sink.close();
+      }, onError: (error) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(
-                e.toString(),
+                error.toString(),
                 selectionColor: Colors.white,
               ),
               backgroundColor: Colors.red),
         );
-      }
-
-
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+        channel.sink.close();
+      });
+    }  catch (e) {
+      ///  log("WebSocketChannelWebSocketChannel${(e as SocketException).osError}");
+        log("WebSocketChannelWebSocketChannel-  ${e.toString()}");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+              e.toString(),
+              selectionColor: Colors.white,
+            ),
+            backgroundColor: Colors.red),
+      );
+    }
   }
+
   @override
   Widget build(BuildContext context) {
-       return Scaffold(
+    return Scaffold(
       appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-             title: Text(widget.title),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(widget.title),
       ),
       body: Center(
-          child: Column(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-             Padding(
-               padding: EdgeInsets.symmetric(vertical: 10.0,horizontal: 40),
-               child: TextField(
-                 decoration: InputDecoration(
-                   border:OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
-                   labelText: '192.168.0.',
-                 ),
-                 keyboardType: TextInputType.number,
-                 onChanged: (value) {
-                 setState(() {
-                   ip = value;
-                 });
-               },
-                 ),
-             ),
-
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 40),
+              child: TextField(
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20)),
+                  labelText: '192.168.0.',
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  setState(() {
+                    ip = value;
+                  });
+                },
+              ),
+            ),
             Text(
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
@@ -165,7 +161,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-  /* import 'dart:convert';
+/* import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
