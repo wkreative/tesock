@@ -40,7 +40,6 @@ dependencies:
     git:
       url: https://github.com/dart-lang/web_socket_channel.git
       ref: master # branch name
-  websocket_universal: ^1.2.5
 dev_dependencies:
   flutter_test:
     sdk: flutter
